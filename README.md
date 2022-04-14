@@ -29,3 +29,15 @@
 - com (androidTest) / com (test) : 테스트를 위한 source sets 입니다. 
   - com (test) : 개발도구에서 실행하는 로컬 테스트를 위한 source set 입니다. 실제 구동하기 위한 device나 emulator가 필요 없습니다. 로컬테스트를 위한 클래스들을 포함합니다. 
   - com (androidTest) : 실제 device나 emulator에서 계측 테스트를 위해 사용합니다. Android Framework library들을 사용하며 로컬테스트보다 속도가 느립니다. 하지만 실제로 어떤 일이 일어나는지 반영합니다. 계측 테스트를 위한 클래스들을 포함합니다. 
+### Test Implementation 
+***app level build.gradle*** <br>
+<img src="https://user-images.githubusercontent.com/55622345/163408382-758a0447-cbb4-478b-9ca0-6f03e314a6ef.png" width="600px"/> <br>
+- testImplementation : test source set 에서만 사용 가능한 implementation 입니다.
+- androidTestImplementation : androidTest source set 에서만 사용 가능한 implementation 입니다.
+*APK 파일을 만들 때는 APK의 용량을 줄이기 위해 test 라이브러리들은 포함되지 않고, Implementation으로 명명된 라이브러리들만 포함됩니다.*
+**junit** - 가장 유명한 테스트 프레임워크입니다. <br>
+**espresso** - 안드로이드를 위한 UI 테스트 프레임워크입니다. <br>
+**core-testing** - ***ViewModel & LiveData*** 테스트하기 위한 라이브러리 입니다. <br>
+<a href="https://truth.dev/">**truth**</a> - assertion을 수행하기 위한 라이브러리 입니다. 
+
+
