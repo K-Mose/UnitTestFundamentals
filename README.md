@@ -22,3 +22,10 @@
 약 20%의 테스트를 통합테스트로 진행합니다. 
 - UI Tests <br>
 마지막으로 UI 테스트를 통해 인터페이스를 확인합니다. 
+
+## Source Sets
+<img src="https://user-images.githubusercontent.com/55622345/163396609-d33ce740-237b-4bd9-bfeb-448a7a86ce29.png" width="400px"/> <br>
+- com : App의 soucre code를 포함하는 Main source set 입니다. 
+- com (androidTest) / com (test) : 테스트를 위한 source sets 입니다. 
+  - com (test) : 개발도구에서 실행하는 로컬 테스트를 위한 source set 입니다. 실제 구동하기 위한 device나 emulator가 필요 없습니다. 로컬테스트를 위한 클래스들을 포함합니다. 
+  - com (androidTest) : 실제 device나 emulator에서 계측 테스트를 위해 사용합니다. Android Framework library들을 사용하며 로컬테스트보다 속도가 느립니다. 하지만 실제로 어떤 일이 일어나는지 반영합니다. 계측 테스트를 위한 클래스들을 포함합니다. 
