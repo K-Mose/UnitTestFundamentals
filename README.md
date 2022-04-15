@@ -47,7 +47,7 @@
 지름을 입력하면 원의 넓이와 둘레를 구하는 계산기입니다. 이 계산기에서 사용되는 함수 가 정상적으로 작동이 되는지 궁금하여 테스트해보려 합니다. 
 
 계산에 사용되는 클래스는 아래와 같습니다. 원의 둘레와 넓이를 구하는 각각의 메소드가 정의되어있습니다.
-```
+```kotlin
 class MyCalc : Calculations{
     private val pi = 3.14
 
@@ -57,3 +57,50 @@ class MyCalc : Calculations{
 }
 ```
 MyCalc 클래스의 메소드들이 원의 둘레와 넓이를 구하는 식으로 잘 작성이 되어있지만 실제로 우리가 예상히는 값이 나오는지 테스트를 해봅시다. 
+
+### Local Unit Test
+위의 클래스로 Test 클래스를 만들어보겠습니다. 
+
+1. 우선 클래스명을 우클릭하여 Generate를 선택합니다. <br>
+<img src="https://user-images.githubusercontent.com/55622345/163511694-c4d13068-1916-4b14-9f3d-b00b1ce9bb34.png" width="300px"/> <br>
+
+2. 그리고 test클래스를 만들기 위해 Test.. 를 클릭합니다. <br>
+<img src="https://user-images.githubusercontent.com/55622345/163511841-c1ef56cf-6cef-4033-b360-048b68067941.png" width="300px"/> <br>
+3. testing library를 선택하고 Class name을 지정 후 OK 버튼을 누릅니다. <br>
+<img src="https://user-images.githubusercontent.com/55622345/163513072-dca78372-cd7b-4786-9119-a4079bf654e0.png" width="300px"/> <br>
+4. 테스트 클래스를 생성한 폴더를 선택합니다. 지금은 local 테스트만 하므로 test폴더를 선택합니다.  <br>
+<img src="https://user-images.githubusercontent.com/55622345/163513113-283d76df-bd70-45bc-9443-b6716f7f037b.png" width="400px"/> <br>
+
+<img src="https://user-images.githubusercontent.com/55622345/163523299-63a7a6e2-1f48-4a2d-bb8b-be4304f42175.png" width="400px"/> <br>
+이제 테스트 클래스가 생성되었습니다. 처음 생성시에 아무 메소드도 선택하지 않았기 때문에 클래스 내에 아무 코드도 존재하지 않습니다. 
+
+테스트 클래스를 작성해 봅시다. 
+
+```kotlin
+class MyCalcTest {
+    private lateinit var myCalc: MyCalc
+
+    @Before
+    fun setUp() {
+        myCalc = MyCalc()
+    }
+
+    @Test
+    fun  calculateCircumference_radiusGiven_returnsCorrectResult() {
+        val result = myCalc.calculateCircumference(2.1)
+        Truth.assertThat(result).isEqualTo(13.188)
+    }
+}
+```
+우선 테스트에서 사용 할 `MyCalc` 객체를 선언합니다. `MyCalc` 객체가 여러 함수에서 사용될 때 함수 호출 시마다 객체도 생성되지 않도록 
+Generate - SetUp Function으로 `@Before` 어노테이션이 붙은 `setUp()`함수를 만들고 객체를 초기화 합니다. 
+`@Before`는 테스트를 실행하기 전에 객체를 생성시킵니다. 
+
+그리고 테스트에 사용할 함수를 작성한 후 테스트 케이스로 사용하기 위해서 `@Test` 어노테이션을 붙여줍니다. 
+함수 내에서 `MyCalc`객체의 원의 둘레를 구하는 함수를 실행 한 후 결과 값을 assort 함수에 넘겨 값을 평가합니다.
+
+이제 테스트를 실행해 보겠습니다. 테스트가 성공하면 아래와 같이 실행됩니다. 
+<img src="https://user-images.githubusercontent.com/55622345/163525320-84e696be-6050-4914-89d2-abdf5309982d.png" width="500px"/>
+
+테스트가 실패하면 아래와 같이 예상 값과 실제 출력 값들을 비교하여 어느 코드에서 실패했는지 나타납니다. 
+<img src="https://user-images.githubusercontent.com/55622345/163525509-a983f948-0792-4ab7-8eb3-c7edd2bde20a.png" width="700px"/>
