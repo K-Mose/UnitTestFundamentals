@@ -42,4 +42,18 @@
 **core-testing** - ***ViewModel & LiveData*** 테스트하기 위한 라이브러리 입니다. <br>
 <a href="https://truth.dev/">**truth**</a> - assertion을 수행하기 위한 라이브러리 입니다. 
 
+## Test Scenario
+<img src="https://user-images.githubusercontent.com/55622345/163511246-2756290e-4abc-46a7-92e5-cc992d0420ea.png" width="400px"/> <br>
+지름을 입력하면 원의 넓이와 둘레를 구하는 계산기입니다. 이 계산기에서 사용되는 함수 가 정상적으로 작동이 되는지 궁금하여 테스트해보려 합니다. 
 
+계산에 사용되는 클래스는 아래와 같습니다. 원의 둘레와 넓이를 구하는 각각의 메소드가 정의되어있습니다.
+```
+class MyCalc : Calculations{
+    private val pi = 3.14
+
+    override fun calculateCircumference(radius: Double): Double =  2 * pi * radius
+
+    override fun calculateArea(radius: Double): Double = pi * radius * radius
+}
+```
+MyCalc 클래스의 메소드들이 원의 둘레와 넓이를 구하는 식으로 잘 작성이 되어있지만 실제로 우리가 예상히는 값이 나오는지 테스트를 해봅시다. 
