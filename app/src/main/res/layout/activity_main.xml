@@ -22,7 +22,7 @@
             android:layout_marginBottom="5dp"
             android:ems="10"
             android:text="@={myViewModel.radius}"
-            android:hint="Radius of the circle"
+            android:hint="@string/radius_of_the_circle"
             android:inputType="textPersonName"
             android:textSize="20dp"
             android:textStyle="bold"
@@ -32,7 +32,7 @@
             android:id="@+id/btn_cal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Calculate"
+            android:text="@string/calculate"
             android:layout_marginBottom="15dp"
             android:onClick="@{()->myViewModel.calculate()}"
             android:textSize="20dp"
@@ -46,7 +46,7 @@
             android:layout_margin="5dp"
             android:layout_marginBottom="5dp"
             android:ems="10"
-            android:text="Area : "
+            android:text="@string/area"
             android:textSize="20dp"
             android:textStyle="bold"
             />
@@ -70,7 +70,7 @@
             android:layout_margin="5dp"
             android:layout_marginBottom="5dp"
             android:ems="10"
-            android:text="Circumference : "
+            android:text="@string/circumference"
             android:textSize="20dp"
             android:textStyle="bold"
             />
@@ -82,7 +82,9 @@
             android:layout_margin="5dp"
             android:layout_marginBottom="5dp"
             android:ems="10"
-            android:text="@={myViewModel.circumferenceValue}"
+            android:text="@={myViewModel.circumference}"
+            android:textSize="20sp"
+            android:textStyle="bold"
             />
 
     </LinearLayout>
