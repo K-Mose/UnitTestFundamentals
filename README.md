@@ -192,7 +192,7 @@ class CalcViewModelTest {
     private lateinit var calcViewModel: CalcViewModel
     private lateinit var calculations: Calculations
 
-    // Instant Task Execute Rule - 같은 스레드 내에 Architecture Component 에 연관된 background job에서 실행됨
+    // Instant Task Execute Rule - test case를 같은 스레드 내에서 실행시킴
     @get:Rule
     var instantTaskExecutorRule = InstantTaskExecutorRule()
 
@@ -221,6 +221,135 @@ class CalcViewModelTest {
         calcViewModel.calculateCircumference(5.0)
         val result = calcViewModel.circumferenceValue.value
         assertThat(result).isEqualTo("31.4")
+    }
+}
+```
+</details>
+
+## Test Room 
+Room의 dao interface는 어떻게 테스트하는지 확인하기 위해 
+<a href="https://github.com/K-Mose/TMDBClient---MVVM-with-Clean-Architecture">TMDBClient</a>프로젝트를 이용해서 Room Database의 테스트 케이스를 만들어보겠습니다. 
+
+영화 정보를 저장하고 삭제하는 테스트 케이스를 작성하기 위해서 `MovieDao`의 테스트 클래스를 ***androidTest*** source set에 생성합니다. <br>
+![image](https://user-images.githubusercontent.com/55622345/163544889-6a7fafa7-aa8b-4f36-9196-0903d42210c6.png)
+
+Dao 객체와 Database 객체를 생성합니다. 
+``` kotlin 
+    private lateinit var dao: MovieDao
+    private lateinit var database: TMDBDatabase
+```
+
+`setUp()`함수에서 위의 객체들을 생성하는데, Room에서 테스트를 위해서 제공하는 inMemoryDatabase로 database 객체를 생성합니다. 
+```kotlin
+    @Before
+    fun setUp() {
+        database = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            TMDBDatabase::class.java,
+        ).build()
+        dao = database.movieDao()
+    }
+```
+inMemoryDatabase는 임시적으로 생성되는 데이터베이스이므로 테스트가 끝나면 저장되었던 데이터는 삭제됩니다. 
+
+이제 테스트 케이스를 작성합니다. 
+``` kotlin 
+    @Test
+    fun saveMoviesTest() = runBlocking {
+        val movies = listOf(
+            Movie(1, "overView1", "posterPath1", "date1", "title1"),
+            Movie(2, "overView2", "posterPath2", "date2", "title2"),
+            Movie(3, "overView3", "posterPath3", "date3", "title3"),
+        )
+        dao.saveMovies(movies)
+        val allMovie = dao.getMovies()
+        assertThat(allMovie).isEqualTo(movies)
+    }
+    
+    @Test
+    fun deleteAllMoviesTest() = runBlocking {
+        val movies = listOf(
+            Movie(1, "overView1", "posterPath1", "date1", "title1"),
+            Movie(2, "overView2", "posterPath2", "date2", "title2"),
+            Movie(3, "overView3", "posterPath3", "date3", "title3"),
+        )
+        dao.saveMovies(movies)
+        dao.deleteAllMovies()
+        assertThat(dao.getMovies()).isEmpty()
+    }    
+```
+
+테스트가 완료되었다면 `tearDown()`함수를 호출시켜 database와의 연결을 종료시킵니다. 
+``` kotlin 
+    @After
+    fun tearDown() {
+        database.close()
+    }
+```
+<details>
+  <summary><b>Full-Code</b></summary>
+  
+```kotlin 
+import com.google.common.truth.Truth.assertThat
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.core.provider.SelfDestructiveThread
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.kmose.tmdbclient.model.movie.Movie
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class MovieDaoTest {
+
+    @get:Rule
+    var instantTaskExecutorRule = InstantTaskExecutorRule()
+
+    private lateinit var dao: MovieDao
+    private lateinit var database: TMDBDatabase
+
+    @Before
+    fun setUp() {
+        // inMemoryDatabaseBuilder - 테스트에서 사용할 수 있도록 임시적인 데이터 저장공간을 제공한다. 데이터가 지속적이지 않아서 테스트가 끝나면 데이터는 제거된다.
+        database = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            TMDBDatabase::class.java,
+        ).build()
+        dao = database.movieDao()
+    }
+
+    @Test
+    fun saveMoviesTest() = runBlocking {
+        val movies = listOf(
+            Movie(1, "overView1", "posterPath1", "date1", "title1"),
+            Movie(2, "overView2", "posterPath2", "date2", "title2"),
+            Movie(3, "overView3", "posterPath3", "date3", "title3"),
+        )
+        dao.saveMovies(movies)
+        val allMovie = dao.getMovies()
+        assertThat(allMovie).isEqualTo(movies)
+    }
+
+    @Test
+    fun deleteAllMoviesTest() = runBlocking {
+        val movies = listOf(
+            Movie(1, "overView1", "posterPath1", "date1", "title1"),
+            Movie(2, "overView2", "posterPath2", "date2", "title2"),
+            Movie(3, "overView3", "posterPath3", "date3", "title3"),
+        )
+        dao.saveMovies(movies)
+        dao.deleteAllMovies()
+        assertThat(dao.getMovies()).isEmpty()
+    }
+
+    @After
+    fun tearDown() {
+        database.close()
     }
 }
 ```
