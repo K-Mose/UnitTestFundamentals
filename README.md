@@ -95,7 +95,7 @@ class MyCalcTest {
 우선 테스트에서 사용 할 `MyCalc` 객체를 선언합니다. `MyCalc` 객체가 여러 함수에서 사용될 때 함수 호출 시마다 객체도 생성되지 않도록 
 Generate - SetUp Function으로 `@Before` 어노테이션이 붙은 `setUp()`함수를 만들고 객체를 초기화 합니다. 
 `@Before`는 테스트를 실행하기 전에 객체를 생성시킵니다. 
-
+ 
 그리고 테스트에 사용할 함수를 작성한 후 테스트 케이스로 사용하기 위해서 `@Test` 어노테이션을 붙여줍니다. 
 함수 내에서 `MyCalc`객체의 원의 둘레를 구하는 함수를 실행 한 후 결과 값을 assort 함수에 넘겨 값을 평가합니다.
 
@@ -104,3 +104,124 @@ Generate - SetUp Function으로 `@Before` 어노테이션이 붙은 `setUp()`함
 
 테스트가 실패하면 아래와 같이 예상 값과 실제 출력 값들을 비교하여 어느 코드에서 실패했는지 나타납니다. 
 <img src="https://user-images.githubusercontent.com/55622345/163525509-a983f948-0792-4ab7-8eb3-c7edd2bde20a.png" width="700px"/>
+
+
+## Test Double 
+아래의 `CalcViewModel`클래스로 테스트 클래스를 만든다고 생각해 봅시다. 
+```kotlin 
+class CalcViewModel(
+    private val calculations: Calculations
+) : ViewModel() {
+  …
+}
+```
+`CalcViewModel`클래스는 `Calculations`인터페이스에 의존성을 가지므로 테스트 케이스에서 `CalcViewModel`의 객체를 생성할 때 `Calculations`인터페이스의 객체를 같이 생성해 줘야 합니다. 하지만 위에 
+[Local Unit Test](#local-unit-test)에서 생성한 테스트 케이스의 `MyCalc`은 `Calculations`인터페이스를 상속하므로 이 테스트 케이스에서 테스트를 하면 될 것같아 보이지만 이런 방식은 *Unit Test*가 아니게 되고 third-party-library에서는 사용하기 어렵습니다. 
+
+이러한 상황들에서 사용하는 것이 **Test Double** 입니다. 테스트 유닛이 다른 테스트 유닛에게 디펜던시를 제공하기 위해 사용합니다. 
+
+아래는 자주 사용되는 <a href="https://developer.android.com/training/testing/fundamentals/test-doubles#types">test double의 타입</a>입니다. <br>
+- Fakes : light weight implementation class of the infercae, usually we hand code fake classes.
+- Stubs : an object that provides predefined answers to method calls.
+- Mocks : similar to stub, but they allows  tester to set answers to method calls when writing the test case.
+
+이제 `CalcVIewMOdel`의 테스트 클래스를 `Mock`을 사용해 테스트 해보겠습니다. 
+
+우선 app level gradle에 Mockito를 추가합니다. 
+```
+dependencies {
+    def mockitoVersion = "4.4.0"
+    testImplementation "org.mockito:mockito-core:$mockitoVersion"
+}
+```
+
+그리고 [Local Unit Test](#local-unit-test)에서 만든 것과 같이 test source set에 CalcViewModelTest 클래스를 만듭니다. 
+```kotlin 
+    private lateinit var calcViewModel: CalcViewModel
+    private lateinit var calculations: Calculations
+```
+`CalcViewModel`클래스와 `Calculations`인터페이스를 전역변수로 생성해 줍니다. 
+
+```kotlin 
+@Before
+    fun setUp() {
+        // create Calculations instance using mockito
+        calculations = Mockito.mock(Calculations::class.java)
+        Mockito
+            .`when`(calculations.calculateArea(2.1))
+            .thenReturn(13.8474)
+        Mockito
+            .`when`(calculations.calculateCircumference(5.0))
+            .thenReturn(31.4)
+        calcViewModel = CalcViewModel(calculations)
+    }
+```
+`setUp()`함수에서 Mockito 객체를 만들고 `when`과 `thenReturn`으로 인터페이스가 구현되어 작동 될 때 나올 값들을 설정해 줍니다. 
+
+```kotlin 
+    @Test
+    fun calculateArea_radiusSent_updateLiveData() {
+        calcViewModel.calculateArea(2.1)
+        val result = calcViewModel.areaValue.value
+        assertThat(result).isEqualTo("13.8474")
+    }
+
+    @Test
+    fun calculateCircumference_radiusSent_updateLiveData() {
+        calcViewModel.calculateCircumference(5.0)
+        val result = calcViewModel.circumferenceValue.value
+        assertThat(result).isEqualTo("31.4")
+    }
+```
+마지막으로 테스트 케이스들을 작성합니다. 
+
+이제 독립적으로 의존성을 주입할 수 있습니다. 
+<details>
+  <summary><b>Full-Code</b></summary>
+  
+```kotlin
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.google.common.truth.Truth.assertThat
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.mockito.Mockito
+
+class CalcViewModelTest {
+
+    private lateinit var calcViewModel: CalcViewModel
+    private lateinit var calculations: Calculations
+
+    // Instant Task Execute Rule - 같은 스레드 내에 Architecture Component 에 연관된 background job에서 실행됨
+    @get:Rule
+    var instantTaskExecutorRule = InstantTaskExecutorRule()
+
+    @Before
+    fun setUp() {
+        // create Calculations instance using mockito
+        calculations = Mockito.mock(Calculations::class.java)
+        Mockito
+            .`when`(calculations.calculateArea(2.1))
+            .thenReturn(13.8474)
+        Mockito
+            .`when`(calculations.calculateCircumference(5.0))
+            .thenReturn(31.4)
+        calcViewModel = CalcViewModel(calculations)
+    }
+
+    @Test
+    fun calculateArea_radiusSent_updateLiveData() {
+        calcViewModel.calculateArea(2.1)
+        val result = calcViewModel.areaValue.value
+        assertThat(result).isEqualTo("13.8474")
+    }
+
+    @Test
+    fun calculateCircumference_radiusSent_updateLiveData() {
+        calcViewModel.calculateCircumference(5.0)
+        val result = calcViewModel.circumferenceValue.value
+        assertThat(result).isEqualTo("31.4")
+    }
+}
+```
+</details>
