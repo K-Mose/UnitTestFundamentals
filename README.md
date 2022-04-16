@@ -354,3 +354,113 @@ class MovieDaoTest {
 }
 ```
 </details>
+
+## Test LiveData
+다시 한번 <a href="https://github.com/K-Mose/TMDBClient---MVVM-with-Clean-Architecture">TMDBClient</a>프로젝트의 LiveData를 이용합니다. 
+<details>
+  <summary>테스트에 사용할 코드 구조</summary>
+
+    
+```kotlin
+class MovieViewModel(
+    private val getMoviesUseCase: GetMoviesUseCase,
+    private val updateMoviesUseCase: UpdateMoviesUsecase
+) : ViewModel() {
+    fun getMovies() = liveData {
+        val movieList = getMoviesUseCase.execute()
+        emit(movieList)
+    }
+
+    fun updateMovies() = liveData {
+        val movieList = updateMoviesUseCase.execute()
+        emit(movieList)
+    }
+}
+```
+`MovieViewModel` 클래스 내에는 2개의 UseCase 의존성을 가지고 있습니다. 그리고 두 객체를 가지고 영화 정보들을 가지고 오고 업데이트 합니다. 
+
+```kotlin
+class GetMoviesUseCase(private val movieRepository: MovieRepository) {
+    suspend fun execute():List<Movie>? = movieRepository.getMovies()
+}
+
+class UpdateMoviesUseCase(private val movieRepository: MovieRepository)  {
+    suspend fun execute():List<Movie>? = movieRepository.updateMovies()
+}
+```
+두 클래스 `GetMoviesUseCase`와 `UpdateMoviesUseCase`는 `MovieRepository`인터페이스에 정의된 각각의 함수를 가져옵니다.
+MovieRepository`인터페이스는 아래와 같이 정의되어 있습니다. 
+```kotlin
+interface MovieRepository {
+    suspend fun getMovies(): List<Movie>?
+    suspend fun updateMovies(): List<Movie>?
+}
+
+class MovieRepositoryImpl(
+    private val movieRemoteDatasource: MovieRemoteDatasource,
+    private val movieLocalDataSource: MovieLocalDataSource,
+    private val movieCacheDataSource: MovieCacheDataSource
+) : MovieRepository {
+    override suspend fun getMovies(): List<Movie>? {
+        return getMoviesFromCache()
+    }
+
+    override suspend fun updateMovies(): List<Movie>? {
+        val newListOfMovies = getMoviesFromAPI()
+        movieLocalDataSource.clearAll() 
+        movieLocalDataSource.saveMovieToDB(newListOfMovies) 
+        movieCacheDataSource.saveMovieToCache(newListOfMovies)
+        return newListOfMovies
+    }
+
+    suspend fun getMoviesFromAPI(): List<Movie> {
+        lateinit var movieList:List<Movie>
+        try {
+            val response = movieRemoteDatasource.getMovies()
+            val body = response.body()
+            if (body != null) {
+                movieList = body.movies
+            }
+        } catch (e: Exception) {
+            Log.i("MyTag", e.message.toString())
+        }
+        return movieList
+    }
+
+    suspend fun getMoviesFromDB(): List<Movie> {
+        lateinit var movieList:List<Movie>
+        try {
+            movieList = movieLocalDataSource.getMovieFromDB()
+        } catch (e: Exception) {
+            Log.i("MyTag", e.message.toString())
+        }
+        if(movieList.isNotEmpty()) {
+            return movieList
+        } else {
+            movieList = getMoviesFromAPI()
+            movieLocalDataSource.saveMovieToDB(movieList)
+        }
+        return movieList
+    }
+
+    suspend fun getMoviesFromCache(): List<Movie> {
+        lateinit var movieList:List<Movie>
+        try {
+            movieList = movieCacheDataSource.getMovieFromCache()
+        } catch (e: Exception) {
+            Log.i("MyTag", e.message.toString())
+        }
+        if(movieList.isNotEmpty()) {
+            return movieList
+        } else {
+            movieList = getMoviesFromDB()
+            movieCacheDataSource.saveMovieToCache(movieList)
+        }
+        return movieList
+    }
+}
+```
+그리고 MovieRepository`인터페이스를 구현하는 MovieRepositoryImpl`클래스는 각각 Cache, DB, API에서 데이터를 가져오는 함수를 정의합니다. 
+<details>
+
+지금 테스트에서는 `MoviewViewModel`을 사용해서 Fake로 테스트하는 법을 알아보겠습니다. 
