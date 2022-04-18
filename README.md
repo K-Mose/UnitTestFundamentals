@@ -461,6 +461,188 @@ class MovieRepositoryImpl(
 }
 ```
 그리고 MovieRepository`인터페이스를 구현하는 MovieRepositoryImpl`클래스는 각각 Cache, DB, API에서 데이터를 가져오는 함수를 정의합니다. 
-<details>
+</details>
 
 지금 테스트에서는 `MoviewViewModel`을 사용해서 Fake로 테스트하는 법을 알아보겠습니다. 
+
+우선 test source set에서 테스트를 할 수 있도록 app level의 build.gradle을 수정합니다. 
+```kotlin
+    testImplementation 'junit:junit:4.+'
+    testImplementation 'androidx.test.ext:junit:1.1.3'
+    testImplementation "androidx.arch.core:core-testing:$arch_version"
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.1'
+    testImplementation 'com.google.truth:truth:1.1.3'
+    testImplementation "androidx.test.ext:junit:1.1.3"
+    testImplementation "org.robolectric:robolectric:4.7.3"
+```
+*robolectric은 가상의 안드로이드 환경을 JVM에 제공하여 테스트 할 수 있도록 합니다.*
+ 
+그리고 test set source에 실제 경로와 같은 package를 생성하고 사용할 테스트 클래스를 생성합니다. <br>
+  <img src="https://user-images.githubusercontent.com/55622345/163786211-abe35f57-1a13-454c-84c4-0dfebce234a6.png" width="350px"/> <br>
+`MovieViewModel`클래스는 `GetMoviesUseCase`와 `UpdateMoviesUseCase`에 의존성을 갖고 각각 UseCase는 `MovieRepository`인터페이스 구현한 객체에 의존성을 갖기 때문에 `MovieRepository`인터페이스를 구현하는 **Fake** 클래스로 테스트를 수행합니다.  
+  
+`FakeMovieRepository`에서 테스트를 위한 get과 update를 구현합니다.   
+```kotlin
+class FakeMovieRepository : MovieRepository {
+    private val movies = mutableListOf<Movie>()
+
+    init {
+        movies.addAll(listOf(
+            Movie(1, "overView1", "posterPath1", "date1", "title1"),
+            Movie(2, "overView2", "posterPath2", "date2", "title2"),
+            Movie(3, "overView3", "posterPath3", "date3", "title3"),
+        ))
+    }
+
+    override suspend fun getMovies(): List<Movie>? {
+        return movies
+    }
+
+    override suspend fun updateMovies(): List<Movie>? {
+        movies.clear()
+        movies.addAll(listOf(
+            Movie(4, "overView4", "posterPath4", "date4", "title4"),
+            Movie(5, "overView5", "posterPath5", "date5", "title5"),
+            Movie(6, "overView6", "posterPath6", "date6", "title6"),
+        ))
+        return movies
+    }
+```
+
+그리고 `MovieViewModelTest`에 작성한 Fake객체를 이용하여 ViewModel 객체를 생성합니다. 
+```kotlin
+private lateinit var viewModel: MovieViewModel
+
+@Before
+fun setUp() {
+    val fakeMovieRepository = FakeMovieRepository()
+    val getMovieUseCase = GetMoviesUseCase(fakeMovieRepository)
+    val updateMovieUseCase = UpdateMoviesUseCase(fakeMovieRepository)
+    viewModel = MovieViewModel(getMovieUseCase, updateMovieUseCase)
+}
+```
+
+마지막으로 테스트 케이스를 작성한 후 테스트를 실행합니다. 
+```kotlin
+@Test
+fun getMovies_returnsCurrentList() {
+    val movies = mutableListOf<Movie>()
+    movies.addAll(listOf(
+        Movie(1, "overView1", "posterPath1", "date1", "title1"),
+        Movie(2, "overView2", "posterPath2", "date2", "title2"),
+        Movie(3, "overView3", "posterPath3", "date3", "title3"),
+    ))
+
+    val currentList  = viewModel.getMovies().getOrAwaitValue()
+    assertThat(currentList).isEqualTo(movies)
+}
+
+@Test
+fun updateMovies_returnsCurrentList() {
+    val movies = mutableListOf<Movie>()
+    movies.addAll(listOf(
+        Movie(4, "overView4", "posterPath4", "date4", "title4"),
+        Movie(5, "overView5", "posterPath5", "date5", "title5"),
+        Movie(6, "overView6", "posterPath6", "date6", "title6"),
+    ))
+    val updateList  = viewModel.updateMovies().getOrAwaitValue()
+    assertThat(updateList).isEqualTo(movies)
+}
+```
+<details>
+  <summary>Full-Code</summary>
+  
+FakeMovieRepository - 
+```kotlin
+package com.kmose.tmdbclient.data.repository.movie
+
+import com.kmose.tmdbclient.domain.repository.MovieRepository
+import com.kmose.tmdbclient.model.movie.Movie
+
+class FakeMovieRepository : MovieRepository {
+    private val movies = mutableListOf<Movie>()
+
+    init {
+        movies.addAll(listOf(
+            Movie(1, "overView1", "posterPath1", "date1", "title1"),
+            Movie(2, "overView2", "posterPath2", "date2", "title2"),
+            Movie(3, "overView3", "posterPath3", "date3", "title3"),
+        ))
+    }
+
+    override suspend fun getMovies(): List<Movie>? {
+        return movies
+    }
+
+    override suspend fun updateMovies(): List<Movie>? {
+        movies.clear()
+        movies.addAll(listOf(
+            Movie(4, "overView4", "posterPath4", "date4", "title4"),
+            Movie(5, "overView5", "posterPath5", "date5", "title5"),
+            Movie(6, "overView6", "posterPath6", "date6", "title6"),
+        ))
+        return movies
+    }
+}
+```
+  MovieViewModelTest -
+```kotlin
+package com.kmose.tmdbclient.presentation.movie
+
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.common.truth.Truth.assertThat
+import com.kmose.tmdbclient.data.repository.movie.FakeMovieRepository
+import com.kmose.tmdbclient.domain.usecase.GetMoviesUseCase
+import com.kmose.tmdbclient.domain.usecase.UpdateMoviesUseCase
+import com.kmose.tmdbclient.getOrAwaitValue
+import com.kmose.tmdbclient.model.movie.Movie
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class MovieViewModelTest {
+
+    @get:Rule
+    var instantTaskExecutorRule = InstantTaskExecutorRule()
+
+    private lateinit var viewModel: MovieViewModel
+
+    @Before
+    fun setUp() {
+        val fakeMovieRepository = FakeMovieRepository()
+        val getMovieUseCase = GetMoviesUseCase(fakeMovieRepository)
+        val updateMovieUseCase = UpdateMoviesUseCase(fakeMovieRepository)
+        viewModel = MovieViewModel(getMovieUseCase, updateMovieUseCase)
+    }
+
+    @Test
+    fun getMovies_returnsCurrentList() {
+        val movies = mutableListOf<Movie>()
+        movies.addAll(listOf(
+            Movie(1, "overView1", "posterPath1", "date1", "title1"),
+            Movie(2, "overView2", "posterPath2", "date2", "title2"),
+            Movie(3, "overView3", "posterPath3", "date3", "title3"),
+        ))
+
+        val currentList  = viewModel.getMovies().getOrAwaitValue()
+        assertThat(currentList).isEqualTo(movies)
+    }
+
+    @Test
+    fun updateMovies_returnsCurrentList() {
+        val movies = mutableListOf<Movie>()
+        movies.addAll(listOf(
+            Movie(4, "overView4", "posterPath4", "date4", "title4"),
+            Movie(5, "overView5", "posterPath5", "date5", "title5"),
+            Movie(6, "overView6", "posterPath6", "date6", "title6"),
+        ))
+        val updateList  = viewModel.updateMovies().getOrAwaitValue()
+        assertThat(updateList).isEqualTo(movies)
+    }
+}
+```  
+</details>
+  
