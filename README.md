@@ -632,7 +632,7 @@ class MovieViewModelTest {
     }
 
     @Test
-    fun updateMovies_returnsCurrentList() {
+    fun updateMovies_returnsUpdateList() {
         val movies = mutableListOf<Movie>()
         movies.addAll(listOf(
             Movie(4, "overView4", "posterPath4", "date4", "title4"),
@@ -645,4 +645,51 @@ class MovieViewModelTest {
 }
 ```  
 </details>
+  
+### <a href="https://medium.com/androiddevelopers/unit-testing-livedata-and-other-common-observability-problems-bb477262eb04">※※ Unit-testing LiveData and other common observability problems ※※</a>
+위 테스트 코드의 `getMovies_returnsCurrentList()`와 `updateMovies_returnsUpdateList()`에서 LiveDate의 값을 가져오기 위해 `getOrAwaitValue()`를 사용하고 있습니다. 위 코드에서 `viewModel.updateMovies().value`로 값을 가져오게 된다면 `null`이 출력됩니다. <br>
+<img src="https://user-images.githubusercontent.com/55622345/163937669-3d016a45-c610-49aa-92ae-130a7ec32198.png" width="800px"/>
+
+
+LiveData는 데이터의 변화가 감지되어야합니다. 그렇지 않으면 값이 평가될일이 없습니다. 
+위 테스트 코드에서는 LiveData의 데이터 변화를 감지할 수 있는 것들이 없습니다. 그렇기 때문에 `val currentList  = viewModel.getMovies().value`나 `val updateList  = viewModel.updateMovies().value`를 집어 넣어도 항상 값이 `null`이 나오게 됩니다. 
+ 
+ JetPack에서 LiveData 테스트를 위한 해결법을 직접적으로 제공하고있지 않아 아래와 같이 `observeForever{}` 내장 함수를 사용함으로 임시적으로 해결 가능합니다. 
+```kotlin
+val updateList  = viewModel.updateMovies()
+updateList.observeForever{}
+assertThat(updateList.value).isEqualTo(movies)
+```
+ 
+하지만 여러개의 LiveData를 테스트 코드에서 감지하기 위해서는 아래와 같은 확장함수를 추가하여 해결 가능합니다. 
+```kotlin
+/* Copyright 2019 Google LLC.	
+   SPDX-License-Identifier: Apache-2.0 */
+fun <T> LiveData<T>.getOrAwaitValue(
+    time: Long = 2,
+    timeUnit: TimeUnit = TimeUnit.SECONDS
+): T {
+    var data: T? = null
+    val latch = CountDownLatch(1)
+    val observer = object : Observer<T> {
+        override fun onChanged(o: T?) {
+            data = o
+            latch.countDown()
+            this@getOrAwaitValue.removeObserver(this)
+        }
+    }
+
+    this.observeForever(observer)
+
+    // Don't wait indefinitely if the LiveData is not set.
+    if (!latch.await(time, timeUnit)) {
+        throw TimeoutException("LiveData value was never set.")
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    return data as T
+}
+```
+LiveData에 Observer를 추가하고 값의 변화가 감지된다면 `removeObserver`로 Observer를 제거합니다. 그리고 변화된 데이터를 타입에 맞게 리턴합니다. 
+  
   
