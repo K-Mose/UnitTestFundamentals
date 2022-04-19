@@ -692,4 +692,30 @@ fun <T> LiveData<T>.getOrAwaitValue(
 ```
 LiveData에 Observer를 추가하고 값의 변화가 감지된다면 `removeObserver`로 Observer를 제거합니다. 그리고 변화된 데이터를 타입에 맞게 리턴합니다. 
   
+## Dependency
+ViewModel - <br>
+androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.1 <br>
+LiveData - <br>
+androidx.lifecycle:lifecycle-livedata-ktx:2.4.1
   
+**Test** <br>
+- androidx.arch.core:core-testing:2.1.0
+- androidx.test.ext:junit:1.1.3
+- com.google.truth:truth:1.1.3
+- org.mockito:mockito-core:4.4.0
+- org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.1 
+- org.robolectric:robolectric:4.7.3
+  
+**AndroidTest** <br>
+- androidx.arch.core:core-testing:2.1.0
+- androidx.test.ext:junit:1.1.3
+- com.google.truth:truth:1.1.3
+- org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.1
+- androidx.test.espresso:espresso-core:3.4.0
+  
+## Ref.
+https://developer.android.com/training/testing/fundamentals?hl=fi
+https://developer.android.com/training/testing/fundamentals/test-doubles?hl=fi
+https://truth.dev/
+https://github.com/robolectric/robolectric
+https://medium.com/androiddevelopers/unit-testing-livedata-and-other-common-observability-problems-bb477262eb04
